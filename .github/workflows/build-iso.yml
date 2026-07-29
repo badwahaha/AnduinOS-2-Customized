@@ -6,7 +6,6 @@ on:
       - '*' # Runs automatically on any push updates to your custom branch
   workflow_dispatch: # Keeps the manual "Run workflow" trigger button active
 
-# Crucial permission block giving GitHub Actions the right to publish to your Releases tab
 permissions:
   contents: write
 
@@ -14,23 +13,28 @@ jobs:
   build-and-release:
     runs-on: ubuntu-latest
     
+    # Force the job to run inside an Ubuntu Resolute container environment
+    container:
+      image: ubuntu:resolute
+      options: --privileged # Grants necessary rights to run mount/debootstrap inside Docker
+    
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Install System Build Dependencies
         run: |
-          sudo apt update
-          sudo apt install -y make debootstrap xorriso squashfs-tools mtools grep sed
+          apt update
+          apt install -y make debootstrap xorriso squashfs-tools mtools grep sed git sudo
 
       - name: Execute AnduinOS Make Pipeline
         run: |
+          # Safe to run make directly inside the clean container environment
           make
 
       - name: Generate Dynamic Version Tag
         id: versioning
         run: |
-          # Creates a unique timestamp identifier for your release tag name
           TAG_NAME="custom-build-$(date +'%Y.%m.%d-%H%M')"
           echo "tag_name=${TAG_NAME}" >> $GITHUB_OUTPUT
           echo "Generated Tag Name: ${TAG_NAME}"
