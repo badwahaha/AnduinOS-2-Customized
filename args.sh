@@ -125,7 +125,9 @@ export TARGET_PACKAGE_REMOVE="
     firefox-anduinos \
     anduinos-appstore \
     flatpak \
-    gnome-software \
+    anduinos-exe-runner \
+    anduinos-appstore \
+    flatpak \
     gnome-software-plugin-flatpak \
 "
 
