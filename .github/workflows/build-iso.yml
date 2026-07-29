@@ -1,0 +1,33 @@
+name: Build Customized AnduinOS ISO
+
+on:
+  push:
+    branches:
+      - '*' # Triggers on any commit to your custom branch
+  workflow_dispatch: # Allows you to press a "Run workflow" button manually
+
+jobs:
+  build-iso:
+    runs-on: ubuntu-latest # Runs 100% in GitHub's cloud VMs
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install System Build Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y make debootstrap xorriso squashfs-tools mtools grep sed
+
+      - name: Execute AnduinOS Make Pipeline
+        run: |
+          # Executes the core ISO generation script natively
+          sudo make
+
+      - name: Upload Finished ISO Image Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: customized-anduinos-iso
+          path: src/dist/*.iso # Grabs the generated file inside the distribution folder
+          if-no-files-found: error
+          retention-days: 5 # Saves the file on GitHub for 5 days
