@@ -38,7 +38,7 @@ jobs:
           # Drop root privileges and complete everything cleanly inside the user space
           su builduser -c "
             sudo apt update && \
-            sudo apt install -y make debootstrap xorriso squashfs-tools mtools grep sed lsb-release systemd grub-efi-amd64-bin && \
+            sudo apt install -y make debootstrap xorriso squashfs-tools mtools grep sed lsb-release systemd grub-efi-amd64-bin grub-pc-bin && \
             
             # --- CRITICAL SYSTEMCTL MOCK FIX ---
             sudo tee /usr/local/bin/systemctl > /dev/null <<'EOF'
