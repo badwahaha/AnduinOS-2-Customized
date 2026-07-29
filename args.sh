@@ -48,7 +48,7 @@ export LANGUAGE=en_US:en
 #   fi-FI Suomi            hi-IN हिन्दी          el-GR Ελληνικά
 #
 # All verified present in Ubuntu apt repos.
-export LANG_PACK_CODES="en de es fr it pt ru zh-hans ja zh-hant ko vi th ar nl sv pl tr ro da uk id fi hi el"
+export LANG_PACK_CODES="en"
 _LP=""
 for _c in $LANG_PACK_CODES; do
     _LP="$_LP language-pack-$_c language-pack-$_c-base language-pack-gnome-$_c language-pack-gnome-$_c-base"
@@ -63,33 +63,6 @@ unset _LP _c
 # Format: locale_code|Display Label
 export SUPPORTED_LOCALES="
 en_US|English (United States)
-en_GB|English (United Kingdom)
-zh_CN|Simplified Chinese (China Mainland)
-zh_TW|Traditional Chinese (Taiwan)
-zh_HK|Traditional Chinese (Hong Kong)
-ja_JP|Japanese
-ko_KR|Korean
-vi_VN|Vietnamese
-th_TH|Thai
-de_DE|German
-fr_FR|French
-es_ES|Spanish
-ru_RU|Russian
-it_IT|Italian
-pt_PT|Portuguese
-pt_BR|Portuguese (Brazil)
-ar_SA|Arabic
-nl_NL|Dutch
-sv_SE|Swedish
-pl_PL|Polish
-tr_TR|Turkish
-ro_RO|Romanian
-da_DK|Danish
-uk_UA|Ukrainian
-id_ID|Indonesian
-fi_FI|Finnish
-hi_IN|Hindi
-el_GR|Greek
 "
 
 #==========================
@@ -112,7 +85,7 @@ export TARGET_UBUNTU_VERSION="resolute"
 # The default is the Aiursoft mirror.
 # You can change it to any other mirror that you prefer.
 # See https://docs.anduinos.com/Install/Select-Best-Apt-Source.html
-export APT_SOURCE="http://archive.ubuntu.com/ubuntu/"
+export APT_SOURCE="http://mirrors.aliyun.com/ubuntu"
 
 # This is the name of the target OS.
 # Must be lowercase without special characters and spaces
@@ -144,6 +117,16 @@ export TARGET_PACKAGE_REMOVE="
     os-prober \
     gparted \
     anduinos-installer-beta \
+    transmission-gtk \
+    transmission-common \
+    gnome-chess \
+    geary \
+    papers \
+    firefox-anduinos \
+    anduinos-appstore \
+    flatpak \
+    gnome-software \
+    gnome-software-plugin-flatpak \
 "
 
 #============================
