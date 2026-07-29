@@ -85,7 +85,7 @@ export TARGET_UBUNTU_VERSION="resolute"
 # The default is the Aiursoft mirror.
 # You can change it to any other mirror that you prefer.
 # See https://docs.anduinos.com/Install/Select-Best-Apt-Source.html
-export APT_SOURCE="http://mirrors.aliyun.com/ubuntu"
+export APT_SOURCE="http://archive.ubuntu.com/ubuntu/"
 
 # This is the name of the target OS.
 # Must be lowercase without special characters and spaces
@@ -123,12 +123,7 @@ export TARGET_PACKAGE_REMOVE="
     geary \
     papers \
     firefox-anduinos \
-    anduinos-appstore \
-    flatpak \
     anduinos-exe-runner \
-    anduinos-appstore \
-    flatpak \
-    gnome-software-plugin-flatpak \
 "
 
 #============================
