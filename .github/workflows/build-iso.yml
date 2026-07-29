@@ -25,7 +25,7 @@ jobs:
 
       - name: Execute AnduinOS Make Pipeline
         run: |
-          sudo make
+          make
 
       - name: Generate Dynamic Version Tag
         id: versioning
