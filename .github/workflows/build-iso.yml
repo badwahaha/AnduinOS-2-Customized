@@ -1,63 +1,72 @@
 name: Build and Release Customized AnduinOS ISO
 
+# NOTE: This job is intended to run on a self-hosted runner that has systemd.
+# - Register a self-hosted runner and give it a label such as "systemd" (see docs).
+# - The runner must be a full VM/host with systemd (Ubuntu Server, etc.). GitHub-hosted runners do NOT support running systemd services reliably.
 on:
   push:
     branches:
       - '*' # Runs automatically on any push updates to your custom branch
-  workflow_dispatch: # Keeps the manual "Run workflow" trigger button active
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   build-and-release:
-    runs-on: ubuntu-latest
-    
-    container:
-      image: ubuntu:resolute
-      options: --privileged # Grants necessary rights to run mount/debootstrap inside Docker
-    
+    # Require a self-hosted runner that provides systemd. Adjust labels to match your runner.
+    runs-on: [self-hosted, linux, systemd]
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-       Tar-up and prep the local workspace configuration permissions
-      - name: Configure Container Environment and Users
+      - name: Verify systemd is available
         run: |
-          apt update
-          apt install -y sudo git
-          
-          # Create a clean, unprivileged non-root user with passwordless administrative rights
-          useradd -m builduser
-          echo "builduser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
-          
-          # Pass over repo workspace permissions to our customized user context
-          chown -R builduser:builduser "$GITHUB_WORKSPACE"
+          set -euo pipefail
+          # Try to talk to systemctl as root; fail fast with instructive message if systemd isn't present.
+          if ! sudo systemctl --version >/dev/null 2>&1; then
+            echo "ERROR: systemd not detected or not usable on this runner."
+            echo "This job requires a self-hosted runner with systemd. Register a runner that runs a systemd-enabled OS and add the 'systemd' label."
+            exit 1
+          fi
+          echo "systemd detected:"
+          sudo systemctl --version
 
-      - name: Execute AnduinOS Make Pipeline
+      - name: Configure Runner Environment and Create Build User
         run: |
-          # Drop root privileges and complete everything cleanly inside the user space
-          su builduser -c "
-            sudo apt update && \
-            sudo apt install -y make debootstrap xorriso squashfs-tools mtools grep sed lsb-release systemd && \
-            
-            # --- CRITICAL SYSTEMCTL MOCK FIX ---
-            # Create a fake systemctl binary that intercepts service reloads and returns 'success'
-            sudo tee /usr/local/bin/systemctl > /dev/null <<'EOF'
-          #!/bin/sh
-          echo '[MOCK SYSTEMCTL] Safely passing container command: \$*'
-          exit 0
-          EOF
-            sudo chmod +x /usr/local/bin/systemctl && \
-            # -----------------------------------
+          set -euo pipefail
+          sudo apt-get update -y
 
-            git config --global --add safe.directory '$GITHUB_WORKSPACE' && \
-            make
-          "
+          # Install build dependencies. On a systemd host we avoid installing systemd itself here.
+          sudo apt-get install -y --no-install-recommends \
+            sudo git make debootstrap xorriso squashfs-tools mtools grep sed lsb-release build-essential
+
+          # Create an unprivileged build user (idempotent)
+          if ! id -u builduser >/dev/null 2>&1; then
+            sudo useradd -m -s /bin/bash builduser
+          fi
+
+          # Add a safe sudoers drop-in instead of appending to /etc/sudoers
+          echo "builduser ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/builduser >/dev/null
+          sudo chmod 0440 /etc/sudoers.d/builduser
+
+          # Ensure the workspace is owned by the build user so that make runs without permission issues
+          sudo chown -R builduser:builduser "$GITHUB_WORKSPACE"
+
+      - name: Execute AnduinOS Make Pipeline (as builduser)
+        run: |
+          set -euo pipefail
+          WORKDIR="$GITHUB_WORKSPACE"
+          # Run git safe.directory and the build as the unprivileged builduser
+          sudo -u builduser -H bash -lc "git config --global --add safe.directory \"$WORKDIR\" && cd \"$WORKDIR\" && make"
 
       - name: Generate Dynamic Version Tag
         id: versioning
         run: |
+          set -euo pipefail
           TAG_NAME="custom-build-$(date +'%Y.%m.%d-%H%M')"
           echo "tag_name=${TAG_NAME}" >> $GITHUB_OUTPUT
           echo "Generated Tag Name: ${TAG_NAME}"
@@ -69,11 +78,11 @@ jobs:
           name: "Custom AnduinOS Build (${{ steps.versioning.outputs.tag_name }})"
           body: |
             Automated cloud build of your customized AnduinOS ISO image.
-            
+
             - Built from Branch: `${{ github.ref_name }}`
             - Commit SHA: `${{ github.sha }}`
-          draft: false
-          prerelease: false
           files: |
             src/dist/*.iso
             dist/*.iso
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
