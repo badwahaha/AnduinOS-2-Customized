@@ -21,11 +21,11 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Necessary mapping fixes to handle standard root constraints inside unprivileged contexts
+      # Adding lsb-release solves the validation problem natively
       - name: Install System Build Dependencies and Fix Permissions
         run: |
           apt update
-          apt install -y make debootstrap xorriso squashfs-tools mtools grep sed git sudo
+          apt install -y make debootstrap xorriso squashfs-tools mtools grep sed git sudo lsb-release
           
           # Fix Git ownership warning inside the Docker shared workspace path
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
