@@ -18,7 +18,9 @@ jobs:
       options: --privileged # Grants necessary rights to run mount/debootstrap inside Docker
     
     steps:
-      # CRITICAL FIX: The workspace preparation must happen BEFORE the checkout step
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
       - name: Configure Container Environment and Users
         run: |
           apt update
@@ -28,36 +30,29 @@ jobs:
           useradd -m builduser
           echo "builduser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
           
-          # Ensure the workspace directory is pre-made and owned by builduser
-          mkdir -p "$GITHUB_WORKSPACE"
+          # Pass over repo workspace permissions to our customized user context
           chown -R builduser:builduser "$GITHUB_WORKSPACE"
-
-      # Running checkout AFTER the folder ownership is fixed ensures correct permissions
-      - name: Checkout Code
-        uses: actions/checkout@v4
 
       - name: Execute AnduinOS Make Pipeline
         run: |
           # Drop root privileges and complete everything cleanly inside the user space
           su builduser -c "
             sudo apt update && \
-            sudo apt install -y make debootstrap xorriso squashfs-tools mtools grep sed lsb-release systemd && \
+            sudo apt install -y make debootstrap xorriso squashfs-tools mtools grep sed lsb-release systemd grub-efi-amd64-bin && \
             
-            # Create a fake systemctl binary that intercepts service reloads and returns 'success'
+            # --- CRITICAL SYSTEMCTL MOCK FIX ---
             sudo tee /usr/local/bin/systemctl > /dev/null <<'EOF'
           #!/bin/sh
           echo '[MOCK SYSTEMCTL] Safely passing container command: \$*'
           exit 0
           EOF
             sudo chmod +x /usr/local/bin/systemctl && \
+            # -----------------------------------
 
-            # Fix Git ownership warning inside the Docker shared workspace path
             git config --global --add safe.directory '$GITHUB_WORKSPACE' && \
-            
             make
           "
 
-      # Run post-build release logic as the standard runner context
       - name: Generate Dynamic Version Tag
         id: versioning
         run: |
