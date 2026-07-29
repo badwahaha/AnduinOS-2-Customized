@@ -13,7 +13,6 @@ jobs:
   build-and-release:
     runs-on: ubuntu-latest
     
-    # Force the job to run inside an Ubuntu Resolute container environment
     container:
       image: ubuntu:resolute
       options: --privileged # Grants necessary rights to run mount/debootstrap inside Docker
@@ -22,15 +21,26 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Install System Build Dependencies
+      # Necessary mapping fixes to handle standard root constraints inside unprivileged contexts
+      - name: Install System Build Dependencies and Fix Permissions
         run: |
           apt update
           apt install -y make debootstrap xorriso squashfs-tools mtools grep sed git sudo
+          
+          # Fix Git ownership warning inside the Docker shared workspace path
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          
+          # Create a non-root "builduser" with passwordless sudo rights
+          useradd -m builduser
+          echo "builduser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+          
+          # Transfer workspace folder ownership to our new unprivileged user profile
+          chown -R builduser:builduser "$GITHUB_WORKSPACE"
 
       - name: Execute AnduinOS Make Pipeline
         run: |
-          # Safe to run make directly inside the clean container environment
-          make
+          # Drop root status and execute the compilation script as builduser
+          su builduser -c "make"
 
       - name: Generate Dynamic Version Tag
         id: versioning
