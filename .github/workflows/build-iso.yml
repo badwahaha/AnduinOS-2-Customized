@@ -21,26 +21,27 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Adding lsb-release solves the validation problem natively
-      - name: Install System Build Dependencies and Fix Permissions
+      - name: Configure Container Environment and Users
         run: |
           apt update
-          apt install -y make debootstrap xorriso squashfs-tools mtools grep sed git sudo lsb-release
+          apt install -y sudo git
           
-          # Fix Git ownership warning inside the Docker shared workspace path
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          
-          # Create a non-root "builduser" with passwordless sudo rights
+          # Create a clean, unprivileged non-root user with passwordless administrative rights
           useradd -m builduser
           echo "builduser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
           
-          # Transfer workspace folder ownership to our new unprivileged user profile
+          # Pass over repo workspace permissions to our customized user context
           chown -R builduser:builduser "$GITHUB_WORKSPACE"
 
       - name: Execute AnduinOS Make Pipeline
         run: |
-          # Drop root status and execute the compilation script as builduser
-          su builduser -c "make"
+          # Drop root privileges and complete everything cleanly inside the user space
+          su builduser -c "
+            sudo apt update && \
+            sudo apt install -y make debootstrap xorriso squashfs-tools mtools grep sed lsb-release && \
+            git config --global --add safe.directory '$GITHUB_WORKSPACE' && \
+            make
+          "
 
       - name: Generate Dynamic Version Tag
         id: versioning
