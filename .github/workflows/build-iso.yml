@@ -60,6 +60,15 @@ jobs:
           echo "tag_name=${TAG_NAME}" >> $GITHUB_OUTPUT
           echo "Generated Tag Name: ${TAG_NAME}"
 
+      - name: Upload built ISO(s) as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: anduin-iso
+          path: |
+            src/dist/*.iso
+            dist/*.iso
+          if-no-files-found: ignore
+
       - name: Publish Custom ISO to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
@@ -70,8 +79,7 @@ jobs:
             
             - Built from Branch: `${{ github.ref_name }}`
             - Commit SHA: `${{ github.sha }}`
+            
+            Note: The ISO image(s) produced by this build have been uploaded as workflow artifacts (Actions → this workflow run → Artifacts → anduin-iso).
           draft: false
           prerelease: false
-          files: |
-            src/dist/*.iso
-            dist/*.iso
